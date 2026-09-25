@@ -1,22 +1,11 @@
-AURA FIGHT V4 — PHÚ × SƯƠNG
+AURA FIGHT V5 — PHÚ × SƯƠNG
 
-Bản này được viết lại để tránh các lỗi của V3:
-- Không phụ thuộc ảnh WebP/data URI khổng lồ.
-- Không phụ thuộc manifest/service worker/asset ngoài.
-- Canvas 2D tự vẽ nhân vật và hiệu ứng.
-- Input pointer/touch/keyboard dùng chung.
-- Cooldown và trạng thái KO được quản lý tập trung.
+Bản cải tạo hoàn toàn từ V4, bám theo sprite-sheet tham chiếu:
+- Phú: mũ đen, áo số 13, quần cargo đen, giày trắng.
+- Sương: mũ LY có tai lông, tóc dài, áo đen, quần cargo đen.
+- Có animation riêng cho idle/đi/chạy/dừng, nhảy/rơi, combo 3 đòn, đòn trên không, né/lướt, phản đòn, block, charge aura, Ultimate I, Ultimate II, KO.
+- Canvas 2D tự vẽ, không CDN, chạy offline trên Safari/iPhone.
+- 1P vs AI hoặc 2P.
 
-Động tác:
-- Idle, walk, run, jump
-- Combo 1/2/3
-- Air attack
-- Dash/dodge
-- Block + parry
-- Charge aura
-- Ultimate I
-- Ultimate II
-- Hit + KO
-
-Phím Phú: A/D di chuyển, W nhảy, J đánh, I né/lướt, K Ultimate I, U Ultimate II, L đỡ.
-Sương AI tự chiến đấu. Nút cảm ứng ở cuối màn hình.
+Phím Phú: A/D/W/J/I/O/Q/K/U/L
+Phím Sương: ←/→/↑/Numpad1/Numpad0/Numpad4/Numpad7/Numpad2/Numpad5/Numpad3
