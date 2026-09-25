@@ -109,11 +109,13 @@ button{border:1px solid #737686;background:#20232d;color:#fff;border-radius:12px
     </div>
   </div>
 </div>
+<script src="./motion-models.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const p1=$('#p1'),p2=$('#p2'),hp1=$('#hp1'),hp2=$('#hp2'),en1=$('#en1'),en2=$('#en2'),timerEl=$('#timer'),msg=$('#msg'),fx=$('#fx');
 const keys={},pressed={};
 let mode=1,running=false,over=false,t=60,last=0,raf=0;
+const motionState=[{name:'idle',time:0,dur:.5},{name:'idle',time:0,dur:.5}];
 const P=[
  {el:p1,x:22,hp:100,en:0,vy:0,onGround:true,block:false,cd:0,skillCd:0,combo:0,comboT:0,state:'idle',dash:0},
  {el:p2,x:68,hp:100,en:0,vy:0,onGround:true,block:false,cd:0,skillCd:0,combo:0,comboT:0,state:'idle',dash:0}
@@ -130,27 +132,54 @@ function update(){
  p1.style.left=P[0].x+'%';p2.style.left=P[1].x+'%';timerEl.textContent=Math.ceil(t);
 }
 function spark(x,y,text='✦',big=false){const s=document.createElement('div');s.className='spark';s.textContent=text;s.style.left=x+'%';s.style.top=y+'%';if(big)s.style.fontSize='75px';fx.appendChild(s);setTimeout(()=>s.remove(),big?650:300)}
-function animate(i,cls){const e=P[i].el;e.className='fighter '+cls;setTimeout(()=>{if(e.className.includes(cls))e.className='fighter'},cls==='ult'?700:330)}
+function animate(i,cls){
+ const map={attack1:'attack1',attack2:'attack2',attack3:'attack3',attack:'attack1',ult:'ultimate',hit:'block',jump:'jump',walk:'walk',block:'block'};
+ motionState[i].name=map[cls]||'idle';motionState[i].time=0;motionState[i].dur=cls==='ult'?.72:cls==='jump'?.5:cls==='walk'?.28:cls==='block'?.25:.3;
+ const e=P[i].el;e.className='fighter '+cls;setTimeout(()=>{if(e.className.includes(cls))e.className='fighter'},cls==='ult'?720:360)
+}
 function face(i){P[i].el.style.transform=i===1?'scaleX(-1)':''}
 function damage(att,amount,type){const d=P[1-att];if(d.block)amount=Math.max(2,Math.round(amount*.28));d.hp=Math.max(0,d.hp-amount);d.en=Math.min(100,d.en+9);P[att].en=Math.min(100,P[att].en+6);animate(1-att,'hit');spark((P[att].x+P[1-att].x)/2,43,type==='ult'?'⚡':'✦',type==='ult');if(d.hp<=0)finish(att);update()}
 function normal(i){const a=P[i],d=P[1-i],dist=Math.abs(a.x-d.x);if(a.cd>0||a.skillCd>0)return;a.cd=.25;a.combo=a.comboT>0?Math.min(3,a.combo+1):1;a.comboT=.7;animate(i,'attack'+a.combo);spark((a.x+d.x)/2,50,a.combo===3?'💥':'✦');const reach=[17,19,22][a.combo-1];if(dist<reach)damage(i,DATA[i].attack*(a.combo===1?1:a.combo===2?1.25:1.65),'normal')}
-function ultimate(i){const a=P[i],d=P[1-i],dist=Math.abs(a.x-d.x);if(a.en<100||a.skillCd>0)return;a.en=0;a.skillCd=3.8;animate(i,'ult');spark(a.x,38,i===0?'👊':'❄',true);setTimeout(()=>{if(!running)return;if(Math.abs(a.x-d.x)<32){damage(i,DATA[i].skill,'ult');d.x+=i===0?7:-7} else {d.hp=Math.max(0,d.hp-5);update()}},300)}
+function ultimate(i){
+ const a=P[i],d=P[1-i],dist=Math.abs(a.x-d.x);
+ if(a.en<100||a.skillCd>0||a.hp<=0)return;
+ a.en=0;a.skillCd=3.8;a.dash=i===0?1:-1;
+ animate(i,'ult');spark(a.x,38,i===0?'👊':'❄',true);
+ // Tuyệt kỹ luôn tạo chuyển động lao tới; sát thương được chốt sau 0.28s.
+ const target=a.x+(i===0?Math.min(10,Math.max(0,d.x-a.x-5)):-Math.min(10,Math.max(0,a.x-d.x-5)));
+ a.x=Math.max(7,Math.min(86,target));
+ setTimeout(()=>{
+   if(!running||a.hp<=0)return;
+   const nowDist=Math.abs(a.x-d.x);
+   if(nowDist<36){damage(i,DATA[i].skill,'ult');spark(d.x,40,i===0?'💥':'❄️',true);d.x=Math.max(7,Math.min(86,d.x+(i===0?7:-7)))}
+   else {spark(a.x,42,'⚡',true)}
+   update();
+ },280);
+ update();
+}
 function inputP1(){
- P[0].block=!!keys.l;
+ P[0].block=!!keys.l;if(P[0].block)animate(0,'block');
  if(keys.a)P[0].x-=.72;if(keys.d)P[0].x+=.72;
  if(pressed.w&&P[0].onGround){P[0].vy=-1.65;P[0].onGround=false;animate(0,'jump')}
  if(pressed.j)normal(0);if(pressed.k)ultimate(0);
 }
 function inputP2(){
- P[1].block=!!keys.Numpad3;
+ P[1].block=!!keys.Numpad3;if(P[1].block)animate(1,'block');
  if(mode===2){if(keys.ArrowLeft)P[1].x-=.72;if(keys.ArrowRight)P[1].x+=.72;if(pressed.ArrowUp&&P[1].onGround){P[1].vy=-1.65;P[1].onGround=false;animate(1,'jump')}if(pressed.Numpad1)normal(1);if(pressed.Numpad2)ultimate(1)}
  else {const d=P[0];if(Math.abs(d.x-P[1].x)>14)P[1].x+=d.x>P[1].x?.42:-.42;else if(Math.random()<.05)normal(1);if(P[1].en>=100&&Math.abs(d.x-P[1].x)<30&&Math.random()<.025)ultimate(1);P[1].block=P[0].state==='attack'&&Math.random()<.08}
 }
 function physics(i,dt){
- const a=P[i];a.vy+=.075;a.el.style.bottom=(10+Math.max(0,-a.vy*0))+'%';
- if(!a.onGround){a.vy+=.055;a.el.style.transform=`translateY(${a.vy<0?a.vy*42:Math.min(0,(a.vy-1)*-8)}px) ${i===1?'scaleX(-1)':''}`;if(a.vy>1){a.onGround=true;a.vy=0;face(i)}}
- if(!a.block&&a.onGround&&(keys[i===0?'a':'ArrowLeft']||keys[i===0?'d':'ArrowRight'])&&!a.el.className.includes('attack')){animate(i,'walk')}
- a.x=Math.max(7,Math.min(86,a.x));a.cd=Math.max(0,a.cd-dt);a.skillCd=Math.max(0,a.skillCd-dt);a.comboT=Math.max(0,a.comboT-dt);if(a.comboT===0)a.combo=0;a.state=a.el.className.includes('attack')?'attack':a.block?'block':'idle';
+ const a=P[i];a.vy+=.075;
+ if(!a.onGround){a.vy+=.055;if(a.vy>1){a.onGround=true;a.vy=0;animate(i,'idle')}}
+ if(!a.block&&a.onGround&&(keys[i===0?'a':'ArrowLeft']||keys[i===0?'d':'ArrowRight'])&&!a.el.className.includes('attack')) animate(i,'walk');
+ a.x=Math.max(7,Math.min(86,a.x));a.cd=Math.max(0,a.cd-dt);a.skillCd=Math.max(0,a.skillCd-dt);a.comboT=Math.max(0,a.comboT-dt);if(a.comboT===0)a.combo=0;
+ a.state=a.el.className.includes('attack')?'attack':a.block?'block':'idle';
+ motionState[i].time+=dt;
+ const state=motionState[i].name||'idle';
+ const m=MOTION_UTILS.get(i===0?'phu':'suong',state,Math.min(1,motionState[i].time/motionState[i].dur));
+ const jumpY=!a.onGround ? a.vy*18 : 0;
+ const flip=i===1?' scaleX(-1)':'';
+ a.el.style.transform=`translate(${m.x}px,${m.y+jumpY}px) scale(${m.sx},${m.sy}) rotate(${m.rot}deg)${flip}`;
 }
 function loop(now){if(!running)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;t-=dt;if(t<=0){t=0;running=false;const w=P[0].hp>=P[1].hp?0:1;msg.textContent=(w===0?'PHÚ':'SƯƠNG')+' THẮNG THEO THỜI GIAN';msg.style.display='block';setTimeout(()=>$('#start').style.display='flex',900)}inputP1();inputP2();physics(0,dt);physics(1,dt);update();for(const k in pressed)delete pressed[k];raf=requestAnimationFrame(loop)}
 addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))e.preventDefault();if(!keys[e.code])pressed[e.code]=true;keys[e.code]=true});
